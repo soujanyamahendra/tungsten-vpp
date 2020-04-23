@@ -1,0 +1,109 @@
+global:
+  images:
+    tags:
+      nodemgr: "docker.io/atsgen/contrail-nodemgr:latest"
+      contrail_status: "docker.io/atsgen/contrail-status:latest"
+      node_init: "docker.io/atsgen/contrail-node-init:latest"
+      vpp_agent: "docker.io/atsgen/tungsten-vpp-agent:latest"
+      vpp: "docker.io/atsgen/tungsten-vpp-datapath:latest"
+      vpp_init: "docker.io/atsgen/tungsten-vpp-init:latest"
+      kubernetes_cni_init: "docker.io/atsgen/contrail-kubernetes-cni-init:latest"
+      dep_check: quay.io/stackanetes/kubernetes-entrypoint:v0.2.1
+    imagePullPolicy: "IfNotPresent"
+    # Specify imageCredentials
+    imageCredentials:
+      # registry: quay.io
+      # username: username
+      # password: password
+
+  # common section for all vrouter variants
+  # this section is commonized with other Contrails' services
+  contrail_env:
+    CONTROLLER_NODES: 10.87.65.248
+    LOG_LEVEL: SYS_NOTICE
+    CLOUD_ORCHESTRATOR: openstack
+    AAA_MODE: cloud-admin
+    ANALYTICSDB_ENABLE: "true"
+    ANALYTICS_ALARM_ENABLE: "true"
+    ANALYTICS_SNMP_ENABLE: "true"
+    # this value should be the same as nova/conf.nova.neutron.metadata_proxy_shared_secret
+    METADATA_PROXY_SECRET: password
+    #VROUTER_GATEWAY: 8.0.0.254
+
+  # section of vpp template for dpdk mode
+  tungsten_env_vpp:
+    AGENT_MODE: dpdk
+
+  # section of vrouter for xflow configs
+  contrail_env_xflow_configuration:
+    # Set this to the loadbalancer collector vip 
+    # XFLOW_NODE_IP: 10.87.65.248
+
+  node:
+    host_os: ubuntu
+
+labels:
+  vpp:
+    node_selector_key: "atsgen.com/vpp"
+    node_selector_value: "enabled"
+
+dependencies:
+  vpp:
+    daemonset:
+    - contrail-config
+    - contrail-control
+  kubernetes_cni_init:
+    daemonset:
+    - contrail-kube-manager
+
+# Names of secrets used by bootstrap and environmental checks
+secrets:
+  keystone:
+    admin: tungsten-vpp-keystone-admin
+
+# typically overriden by environmental
+# values, but should include all endpoints
+# required by this chart
+endpoints:
+  cluster_domain_suffix: cluster.local
+  keystone:
+    auth:
+      username: admin
+      password: password
+      project_name: admin
+      user_domain_name: default
+      project_domain_name: default
+      region_name: RegionOne
+    hosts:
+      default: keystone
+    path:
+      default: /v3
+    port:
+      api:
+        default: 80
+    scheme:
+      default: http
+    host_fqdn_override:
+       default: null
+    namespace: openstack
+
+pod:
+  lifecycle:
+    upgrades:
+      daemonsets:
+        pod_replacement_strategy: RollingUpdate
+        vpp:
+          enabled: true
+          min_ready_seconds: 30
+          max_unavailable: 1
+
+# VolumeMounts related inputs are defined here
+volumeMounts:
+  host_usr_bin:
+    hostPath: '/usr/bin'
+
+manifests:
+  configmap_vpp: true
+  configmap_vrouter_keystone: true
+  secret_vrouter_keystone_admin: true
+  job_kubernetes_cni_init: false

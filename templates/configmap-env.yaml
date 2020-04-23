@@ -1,0 +1,16 @@
+{{- $context := . }}
+{{- $keystone_auth_host := tuple "keystone" "default" $context | include "helm-toolkit.endpoints.hostname_namespaced_endpoint_lookup" }}
+
+{{- if not .Values.global.tungsten_env_vpp -}}
+{{- $_ := set .Values.global "tungsten_env_vpp" dict -}}
+{{- end -}}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tungsten-vpp
+data:
+  {{- range $key, $value := .Values.global.tungsten_env_vpp }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
