@@ -32,6 +32,7 @@ global:
 
   # section of vpp template for dpdk mode
   tungsten_env_vpp:
+    PHYSICAL_INTERFACE: ens4
     AGENT_MODE: dpdk
 
   # section of vrouter for xflow configs
